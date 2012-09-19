@@ -2,6 +2,7 @@
 PicoHarp 300 file parser
 """
 import datetime
+import numpy as np
 from ctypes import c_uint, c_ulong, c_char, c_int, c_int64, c_float, \
                    Structure, sizeof, memmove, addressof
 
@@ -220,11 +221,12 @@ class PicoharpParser(object):
 
     def get_curve(self, n):
         header = self._curves[n]
+        res = header.Resolution
+
         self.f.seek(header.DataOffset)
-        curve = Curve()
-        curve.res = header.Resolution
-        curve.data = list(_read(self.f, c_uint * header.Channels))
-        return curve
+        array = np.fromfile(self.f, c_uint, header.Channels)
+
+        return res, array
 
     def info(self):
         txthdr = self._header
