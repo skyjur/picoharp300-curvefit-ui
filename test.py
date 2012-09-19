@@ -181,13 +181,15 @@ class PicoTest(unittest.TestCase):
             self.assertEqual(info1[i-3:i], info2[i-3:i])
 
     def test_curves_data(self):
-        curve = self.f.get_curve(0)
-        testdata = [0, 0, 0, 0, 0, 1, 2, 0, 0, 2, 0, 0, 3]
-        self.assertEqual(curve.data[:len(testdata)], testdata)
+        res, curve = self.f.get_curve(0)
+        b = [0, 0, 0, 0, 0, 1, 2, 0, 0, 2, 0, 0, 3]
+        a = list(curve[:len(b)])
+        self.assertEqual(a, b)
 
-        curve = self.f.get_curve(1)
-        testdata = [0, 2, 3, 1, 3, 2, 2, 1, 2, 3, 2, 2, 2, 2, 2, 2, 0, 0, 0]
-        self.assertEqual(curve.data[:len(testdata)], testdata)
+        res, curve = self.f.get_curve(1)
+        b = [0, 2, 3, 1, 3, 2, 2, 1, 2, 3, 2, 2, 2, 2, 2, 2, 0, 0, 0]
+        a = list(curve[:len(b)])
+        self.assertEqual(a, b)
 
 
 if __name__ == '__main__':
