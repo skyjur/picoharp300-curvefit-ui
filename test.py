@@ -1,5 +1,6 @@
 import unittest
 import picoharp
+import picoharp_backend
 
 
 _test_info = """Ident            : PicoHarp 300
@@ -190,6 +191,46 @@ class PicoTest(unittest.TestCase):
         b = [0, 2, 3, 1, 3, 2, 2, 1, 2, 3, 2, 2, 2, 2, 2, 2, 0, 0, 0]
         a = list(curve[:len(b)])
         self.assertEqual(a, b)
+
+
+class BackendTestCase(unittest.TestCase):
+    def test_iter_data(self):
+        y1 = [1, 2, 3, 4, 5]
+        y2 = [11, 22, 33, 44, 55]
+        r = 0.16
+
+        shift = 0
+        d = picoharp_backend.iter_data(r, y1, y2, shift)
+        d = ['%.2f %d %d' % i for i in d]
+        self.assertEqual(d, [
+            '0.16 1 11',
+            '0.32 2 22',
+            '0.48 3 33',
+            '0.64 4 44',
+            '0.80 5 55',
+        ])
+
+        shift = 0.32
+        d = picoharp_backend.iter_data(r, y1, y2, shift)
+        d = ['%.2f %d %d' % i for i in d]
+        self.assertEqual(d, [
+            '0.16 1 0',
+            '0.32 2 0',
+            '0.48 3 11',
+            '0.64 4 22',
+            '0.80 5 33',
+        ])
+
+        shift = -0.32
+        d = picoharp_backend.iter_data(r, y1, y2, shift)
+        d = ['%.2f %d %d' % i for i in d]
+        self.assertEqual(d, [
+            '0.16 1 33',
+            '0.32 2 44',
+            '0.48 3 55',
+            '0.64 4 0',
+            '0.80 5 0',
+        ])
 
 
 if __name__ == '__main__':
