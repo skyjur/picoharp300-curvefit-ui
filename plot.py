@@ -2,8 +2,6 @@
 import subprocess
 import gtk
 import gobject
-import IPython
-import sys
 import picoharp
 import matplotlib.pyplot as plt
 import numpy
