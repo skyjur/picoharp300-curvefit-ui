@@ -77,7 +77,20 @@ class Sidebar(object):
         fit_data, comments = fit.run()
         self['results'].get_buffer().set_text(comments)
         if fit_data:
+            results = self.parse_result_text(comments)
+            self.manager.write_results_text(**results)
             self.manager.plot_fit_data(fit_data)
+
+    def parse_result_text(self, text):
+        r = {}
+        for line in text.splitlines():
+            line = line.strip().split()
+            if len(line) == 2:
+                try:
+                    r[line[0]] = float(line[1])
+                except ValueError:
+                    continue
+        return r
 
     def on_clear_clicked(self, btn):
         self.manager.clear_fit()
@@ -336,15 +349,23 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
 
         self.ax2 = self.canvas.figure.add_subplot(spec, sharex=self.ax)
         self.ax2.grid(True)
+
+        self.text = self.ax.text(0.90, 0.90, r'',
+            horizontalalignment='center',
+            verticalalignment='center',
+            transform=self.ax.transAxes,
+            fontsize=20,
+        )
         
         self.reset_margins()
 
     def load_data_file(self, filename):
-        for line in self.ax.lines:
-            line.remove()
-
-        for line in self.ax2.lines:
-            line.remove()
+        for attr in ['decay', 'irf', 'fit', 'res']:
+            line = getattr(self, attr, None)
+            if line:
+                line.remove()
+                setattr(self, attr, None)
+                del line
 
         data = PicoharpParser(filename)
         res, curve1 = data.get_curve(0)
@@ -368,10 +389,9 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.res = None
 
         self.ax.set_yscale('log')
-
+        self.text.set_text(r'$\tau_1 = ?$')
+        self.window.set_title(os.path.basename(filename))
         self.canvas.draw()
-
-        self.window.set_title(filename)
 
     def reset_margins(self):
         w, h = self.canvas.get_width_height()
@@ -434,18 +454,41 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.ax.set_xlim((minx, maxx))
         self.ax.set_ylim((miny, maxy))
 
-        self.fit = self.ax.plot(x, y1, 'g-')
-        self.res = self.ax2.plot(x, y2, 'c-') # residuals
+        self.fit = self.ax.plot(x, y1, 'g-')[0]
+        self.res = self.ax2.plot(x, y2, 'c-')[0] # residuals
 
         self.canvas.draw()
 
+    def write_results_text(self, tau=0, izero=0, 
+                                 tau2=0, izero2=0,
+                                 tau3=0, izero3=0,
+                                 chisquare=0,
+                                 **kwargs):
+        r = []
+
+        s = sum((tau*izero, tau2*izero, tau3*izero3))
+
+        s1 = int(tau * izero / s * 100)
+        suf = (tau2 > 0 and '_1' or '')
+        r.append(r'$\tau%s = %s (%s\%%)$ ' % (suf, tau, s1))
+
+        if tau2 != 0:
+            s2 = int(tau2 * izero2 / s * 100)
+            r.append(r'$\tau_2 = %s (%s\%%)$' % (tau2, s2))
+
+        if tau3 != 0:
+            s3 = int(tau3 * izero3 / s * 100)
+            r.append(r'$\tau_3 = %s (%s\%%)$' % (tau3, s3))
+
+        r.append(r'$\chi^2 = %s$' % chisquare)
+
+        self.text.set_text('\n'.join(r))
+
     def clear_fit(self):
         if self.fit:
-            for line in self.fit:
-                self.ax.lines.remove(line)
+            self.ax.lines.remove(self.fit)
         if self.res:
-            for line in self.res:
-                self.ax2.lines.remove(line)
+            self.ax2.lines.remove(self.res)
         self.fit = None
         self.res = None
         self.canvas.draw()
