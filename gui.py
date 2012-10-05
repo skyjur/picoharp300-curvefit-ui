@@ -14,6 +14,7 @@ import gtk
 
 from matplotlib.figure import Figure
 from matplotlib.backends import backend_gtkagg
+from matplotlib.gridspec import GridSpec
 
 from picoharp import PicoharpParser
 
@@ -47,14 +48,24 @@ class Sidebar(object):
             'model': self['model'].get_active_text()
         }
 
-        for k in ['timestart', 'timeend', 'tau', 'izero', 'tau2', 'izero2',
-                  'tau3', 'izero3']:
-            if not self[k].get_sensitive():
-                continue
+        for key in ['timestart', 'timeend', 'tau', 'izero', 'tau2', 'izero2',
+                    'tau3', 'izero3']:
+            if self[key].get_sensitive():
+                value = self[key].get_text().strip()
+                if value:
+                    kwargs[key] = value
 
-            v = self[k].get_text()
-            if v.strip():
-                kwargs[k] = str(getfloat(v))
+        fixed = []
+
+        if self['fixed1'].get_active():
+            fixed.append('tau')
+        if self['fixed2'].get_active():
+            fixed.append('tau2')
+        if self['fixed3'].get_active():
+            fixed.append('tau3')
+
+        if fixed:
+            kwargs['fixed'] = ','.join(fixed)
 
         return kwargs
 
@@ -81,10 +92,9 @@ class Sidebar(object):
     def on_modelinput_changed(self, combobox):
         exp = combobox.get_active_text()
         exp = {'exp1': 1, 'exp2': 2, 'exp3': 3}[exp]
-        self['tau2'].set_sensitive(exp >= 2)
-        self['izero2'].set_sensitive(exp >= 2)
-        self['tau3'].set_sensitive(exp >= 3)
-        self['izero3'].set_sensitive(exp >= 3)
+        for i in [2,3]:
+            for key in ['tau%d' % i, 'izero%d' % i, 'fixed%d' % i]:
+                self[key].set_sensitive(exp >= i)
 
     def on_irfshiftbtn_clicked(self, btn):
         value = getfloat(self['irfshift'].get_text())
@@ -296,13 +306,21 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.sidebar.widget.show()
         self.vpane.pack_end(self.sidebar.widget, False, True)
 
-        self.ax = self.canvas.figure.add_subplot(1, 1, 1)
-        #self.residuals = self.canvas.figure.add_subplot(2, 10, 2)
+        grid = GridSpec(4, 1)
+        spec = grid.new_subplotspec((0, 0), rowspan=3)
+        self.ax = self.canvas.figure.add_subplot(spec)
+        spec = grid.new_subplotspec((3, 0), rowspan=1)
 
+        self.ax2 = self.canvas.figure.add_subplot(spec, sharex=self.ax)
+        self.ax2.grid(True)
+        
         self.reset_margins()
 
     def load_data_file(self, filename):
         for line in self.ax.lines:
+            line.remove()
+
+        for line in self.ax2.lines:
             line.remove()
 
         data = PicoharpParser(filename)
@@ -322,7 +340,9 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
 
         self.decay = self.ax.plot(X, curve1, 'r.')[0]
         self.irf = self.ax.plot(X, curve2, 'b.')[0]
+
         self.fit = None
+        self.res = None
 
         self.ax.set_yscale('log')
 
@@ -331,11 +351,11 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.window.set_title(filename)
 
     def reset_margins(self):
-        w, h = self.window.get_size()
+        w, h = self.canvas.get_width_height()
         top = 1 - 5.0/h
         right = 1 - 5.0/h
-        bottom = 15.0/h
-        left = 15.0/h
+        bottom = 20.0/h
+        left = 20.0/h
         self.canvas.figure.subplots_adjust(
             top=top, right=right, bottom=bottom, left=left)
         self.canvas.draw()
@@ -393,14 +413,20 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.ax.set_xlim((minx, maxx))
         self.ax.set_ylim((miny, maxy))
 
-        self.fit = self.ax.plot(x, y1, 'g-', x, y2, 'c-')
+        self.fit = self.ax.plot(x, y1, 'g-')
+        self.res = self.ax2.plot(x, y2, 'c-') # residuals
+
         self.canvas.draw()
 
     def clear_fit(self):
         if self.fit:
             for line in self.fit:
                 self.ax.lines.remove(line)
-            self.fit = None
+        if self.res:
+            for line in self.res:
+                self.ax2.lines.remove(line)
+        self.fit = None
+        self.res = None
         self.canvas.draw()
 
 
