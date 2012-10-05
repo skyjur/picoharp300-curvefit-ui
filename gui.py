@@ -2,6 +2,7 @@
 An example of how to use pylab to manage your figure windows, but
 modify the GUI by accessing the underlying gtk widgets
 """
+import sys
 import os
 import re
 import itertools
@@ -11,6 +12,7 @@ import tempfile
 import numpy
 import gobject
 import gtk
+import tr_fit
 
 from matplotlib.figure import Figure
 from matplotlib.backends import backend_gtkagg
@@ -210,15 +212,16 @@ class Fit(object):
         return self.get_results()
     
     def start_sub_process(self):
-        args = ['trfit', 
+        d = os.path.dirname(tr_fit.__file__)
+        fitscript = os.path.join(d, 'main.py')
+        args = [sys.executable, 
+                fitscript,
                 'data=%s' % self.data,
                 'mode=fit,dump',
                 'model=%s' % self.model]
 
         for k, v in self.kwargs.items():
             args.append('='.join((k, v)))
-
-        #args = ['sh', '-c', ' '.join(['echo '] + args)]
 
         self.p = subprocess.Popen(args, 
                                   stdout=subprocess.PIPE,
