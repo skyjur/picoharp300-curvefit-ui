@@ -138,6 +138,20 @@ class Menu(gtk.MenuBar):
         openitem.connect('activate', self.on_file_open)
         openitem.show()
 
+        canvasitem = gtk.MenuItem('Canvas')
+        self.append(canvasitem)
+        canvasitem.show()
+
+        canvasmenu = gtk.Menu()
+        canvasitem.set_submenu(canvasmenu)
+        canvasmenu.show()
+
+        irfitem = gtk.CheckMenuItem('IRF')
+        irfitem.set_active(True)
+        irfitem.show()
+        irfitem.connect('toggled', self.on_irf_toggle)
+        canvasmenu.append(irfitem)
+
     def on_file_open(self, btn):
         dialog = gtk.FileChooserDialog('Open...', None,
             gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -161,6 +175,12 @@ class Menu(gtk.MenuBar):
         elif resp == gtk.RESPONSE_CANCEL:
             dialog.destroy()
             print 'Closed, no files selected'
+
+    def on_irf_toggle(self, item):
+        if item.get_active():
+            self.manager.show_irf()
+        else:
+            self.manager.hide_irf()
 
 
 class Fit(object):
@@ -338,8 +358,8 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         curve2 = curve2[:-i]
         X = X[:-i]
 
-        self.decay = self.ax.plot(X, curve1, 'r.')[0]
-        self.irf = self.ax.plot(X, curve2, 'b.')[0]
+        self.decay = self.ax.plot(X, curve2, 'b.')[0]
+        self.irf = self.ax.plot(X, curve1, 'r.')[0]
 
         self.fit = None
         self.res = None
@@ -360,8 +380,6 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
             top=top, right=right, bottom=bottom, left=left)
         self.canvas.draw()
 
-        #self.vpane.set_position(w * 0.8)
-
     def reset_shift(self, draw=False):
         for curve in (self.decay, self.irf):
             if getattr(curve, '_shift', 0) != 0:
@@ -373,10 +391,10 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         value = round(value / self.resolution) * self.resolution
 
         if value > 0:
-            curve = self.decay
+            curve = self.irf
             curve._shift = value
         else:
-            curve = self.irf
+            curve = self.decay
             curve._shift = - value
 
         curve.set_xdata(curve.get_xdata() + curve._shift)
@@ -394,7 +412,7 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         f, filename = tempfile.mkstemp()
         
         for t, a, b in self.iter_data():
-            os.write(f, '%f,%d,%d\n' % (t, b, a))
+            os.write(f, '%f,%d,%d\n' % (t, a, b))
 
         os.close(f)
 
@@ -427,6 +445,16 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
                 self.ax2.lines.remove(line)
         self.fit = None
         self.res = None
+        self.canvas.draw()
+
+    def show_irf(self):
+        if self.irf:
+            if self.irf not in self.ax.lines:
+                self.ax.add_line(self.irf)
+                self.canvas.draw()
+
+    def hide_irf(self):
+        self.irf.remove()
         self.canvas.draw()
 
 
