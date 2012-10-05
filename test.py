@@ -1,6 +1,7 @@
+import itertools
 import unittest
 import picoharp
-import picoharp_backend
+from gui import new_figure_manager
 
 
 _test_info = """Ident            : PicoHarp 300
@@ -193,44 +194,63 @@ class PicoTest(unittest.TestCase):
         self.assertEqual(a, b)
 
 
+
 class BackendTestCase(unittest.TestCase):
-    def test_iter_data(self):
-        y1 = [1, 2, 3, 4, 5]
-        y2 = [11, 22, 33, 44, 55]
-        r = 0.16
+    def setUp(self):
+        self.manager = new_figure_manager(0)
+        self.manager.load_data_file('test-input.phd')
 
-        shift = 0
-        d = picoharp_backend.iter_data(r, y1, y2, shift)
-        d = ['%.2f %d %d' % i for i in d]
-        self.assertEqual(d, [
-            '0.16 1 11',
-            '0.32 2 22',
-            '0.48 3 33',
-            '0.64 4 44',
-            '0.80 5 55',
+    def _slice(self, data, start, stop):
+        d = itertools.islice(data, 0, 10)
+        return ['%.3f %d %d' % args for args in d]
+
+    def test_shifting(self):
+        data1 = self._slice(self.manager.iter_data(), 0, 15)
+        self.assertEqual(data1, [
+            '0.016 0 0',
+            '0.032 2 0',
+            '0.048 3 0',
+            '0.064 1 0',
+            '0.080 3 0',
+            '0.096 2 1',
+            '0.112 2 2',
+            '0.128 1 0',
+            '0.144 2 0',
+            '0.160 3 2',
         ])
 
-        shift = 0.32
-        d = picoharp_backend.iter_data(r, y1, y2, shift)
-        d = ['%.2f %d %d' % i for i in d]
-        self.assertEqual(d, [
-            '0.16 1 0',
-            '0.32 2 0',
-            '0.48 3 11',
-            '0.64 4 22',
-            '0.80 5 33',
-        ])
+        self.manager.irf_shift(0.032)
+        data = self._slice(self.manager.iter_data(), 0, 15)
+        self.assertEqual(data, data1)
+        #self.assertEqual(data, [
+        #    '0.016 0 0',
+        #    '0.032 2 0',
+        #    '0.048 3 0',
+        #    '0.064 1 0',
+        #    '0.080 3 0',
+        #    '0.096 2 0',
+        #    '0.112 2 0',
+        #    '0.128 1 1',
+        #    '0.144 2 2',
+        #    '0.160 3 0',
+        #])
 
-        shift = -0.32
-        d = picoharp_backend.iter_data(r, y1, y2, shift)
-        d = ['%.2f %d %d' % i for i in d]
-        self.assertEqual(d, [
-            '0.16 1 33',
-            '0.32 2 44',
-            '0.48 3 55',
-            '0.64 4 0',
-            '0.80 5 0',
-        ])
+        self.manager.irf_shift(-0.032)
+        data = self._slice(self.manager.iter_data(), 0, 15)
+        self.assertEqual(data, data1)
+        #self.assertEqual(data, [
+        #    '0.016 0 0',
+        #    '0.032 0 0',
+        #    '0.048 0 0',
+        #    '0.064 2 0',
+        #    '0.080 3 0',
+        #    '0.096 1 1',
+        #    '0.112 3 2',
+        #    '0.128 2 0',
+        #    '0.144 2 0',
+        #    '0.160 1 2',
+        #])
+
 
 
 if __name__ == '__main__':

@@ -24,6 +24,13 @@ from picoharp import PicoharpParser
 FigureCanvas = backend_gtkagg.FigureCanvasGTKAgg
 
 
+def array_shift(array, size):
+    array = numpy.resize(array, (len(array) + size, ))
+    array[size:] = array[:-size]
+    array[:size] = 0
+    return array
+
+
 def getfloat(value):
     try:
         return float(re.findall('-?[0-9.]+', value)[0])
@@ -51,7 +58,7 @@ class Sidebar(object):
         }
 
         for key in ['timestart', 'timeend', 'tau', 'izero', 'tau2', 'izero2',
-                    'tau3', 'izero3']:
+                    'tau3', 'izero3', 'irfshift']:
             if self[key].get_sensitive():
                 value = self[key].get_text().strip()
                 if value:
@@ -302,21 +309,6 @@ class Fit(object):
         return (x,y1,y2), '\n'.join(comments[1:-1])
 
 
-def iter_data(resolution, decay, irf, irfshift=0.0):
-    shift = int(round(irfshift / resolution))
-    zeroes = [0] * abs(shift)
-
-    t = resolution
-
-    if shift > 0:
-        irf = itertools.chain(zeroes, irf[:-shift])
-    elif shift < 0:
-        irf = itertools.chain(irf[shift-1:], zeroes)
-
-    for a, b in itertools.izip(decay, irf):
-        yield t, a, b
-        t += resolution
-
 
 class Manager(backend_gtkagg.FigureManagerGTKAgg):
     def __init__(self, canvas, num):
@@ -413,12 +405,8 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.reset_shift()
         value = round(value / self.resolution) * self.resolution
 
-        if value > 0:
-            curve = self.irf
-            curve._shift = value
-        else:
-            curve = self.decay
-            curve._shift = - value
+        curve = self.irf
+        curve._shift = value
 
         curve.set_xdata(curve.get_xdata() + curve._shift)
         self.canvas.draw()
@@ -426,10 +414,22 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         return value
 
     def iter_data(self):
-        shift = getattr(self.decay, '_shift', 0.0)
         decay = self.decay.get_ydata()
         irf = self.irf.get_ydata()
-        return iter_data(self.resolution, decay, irf, shift)
+
+        t = self.resolution
+
+        #if getattr(self.decay, '_shift', 0) > 0:
+        #    size = int(self.decay._shift / self.resolution)
+        #    decay = array_shift(decay, size)
+
+        #if getattr(self.irf, '_shift', 0) > 0:
+        #    size = int(self.irf._shift / self.resolution)
+        #    irf = array_shift(irf, size)
+
+        for a, b in itertools.izip(decay, irf):
+            yield t, a, b
+            t += self.resolution
 
     def export_to_tempfile(self):
         f, filename = tempfile.mkstemp()
