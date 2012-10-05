@@ -23,7 +23,7 @@ FigureCanvas = backend_gtkagg.FigureCanvasGTKAgg
 
 def getfloat(value):
     try:
-        return float(re.findall('[0-9.]+', value)[0])
+        return float(re.findall('-?[0-9.]+', value)[0])
     except IndexError:
         return 0.0
 
@@ -297,6 +297,7 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.vpane.pack_end(self.sidebar.widget, False, True)
 
         self.ax = self.canvas.figure.add_subplot(1, 1, 1)
+        #self.residuals = self.canvas.figure.add_subplot(2, 10, 2)
 
         self.reset_margins()
 
@@ -341,19 +342,27 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
 
         #self.vpane.set_position(w * 0.8)
 
+    def reset_shift(self, draw=False):
+        for curve in (self.decay, self.irf):
+            if getattr(curve, '_shift', 0) != 0:
+                curve.set_xdata(curve.get_xdata() - curve._shift)
+                curve._shift = 0
+
     def irf_shift(self, value):
+        self.reset_shift()
         value = round(value / self.resolution) * self.resolution
 
-        decay = self.decay
-        current_shift = getattr(decay, '_shift', 0)
-        setattr(decay, '_shift', value)
-        value = value - current_shift
-        
-        decay.set_xdata(decay.get_xdata() + value)
-        
+        if value > 0:
+            curve = self.decay
+            curve._shift = value
+        else:
+            curve = self.irf
+            curve._shift = - value
+
+        curve.set_xdata(curve.get_xdata() + curve._shift)
         self.canvas.draw()
 
-        return decay._shift
+        return value
 
     def iter_data(self):
         shift = getattr(self.decay, '_shift', 0.0)
