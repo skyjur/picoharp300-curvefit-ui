@@ -446,14 +446,6 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
 
         x, y1, y2 = data
 
-        maxy = max((max(y1), max(y2)))
-        miny = min((min(y1), min(y2)))
-        maxx = max(x)
-        minx = min(x)
-
-        self.ax.set_xlim((minx, maxx))
-        self.ax.set_ylim((miny, maxy))
-
         self.fit = self.ax.plot(x, y1, 'g-')[0]
         self.res = self.ax2.plot(x, y2, 'c-')[0] # residuals
 
