@@ -458,18 +458,18 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
                                  **kwargs):
         r = []
 
-        s = sum((tau*izero, tau2*izero, tau3*izero3))
+        s = sum((tau*izero, tau2*izero2, tau3*izero3))
 
-        s1 = int(tau * izero / s * 100)
+        s1 = int(round(tau * izero / s * 100))
         suf = (tau2 > 0 and '_1' or '')
         r.append(r'$\tau%s = %s (%s\%%)$ ' % (suf, tau, s1))
 
         if tau2 != 0:
-            s2 = int(tau2 * izero2 / s * 100)
+            s2 = int(round(tau2 * izero2 / s * 100))
             r.append(r'$\tau_2 = %s (%s\%%)$' % (tau2, s2))
 
         if tau3 != 0:
-            s3 = int(tau3 * izero3 / s * 100)
+            s3 = int(round(tau3 * izero3 / s * 100))
             r.append(r'$\tau_3 = %s (%s\%%)$' % (tau3, s3))
 
         r.append(r'$\chi^2 = %s$' % chisquare)
