@@ -38,6 +38,31 @@ def getfloat(value):
         return 0.0
 
 
+def get_next_file(filename, i=1, _listdir=os.listdir):
+    """
+    >>> ls = lambda n: ['a.txt', 'b.doc', 'c.txt']
+    >>> get_next_file('a.txt', 1, ls)
+    'c.txt'
+    >>> get_next_file('a.txt', -1, ls)
+    'c.txt'
+    >>> get_next_file('c.txt', -1, ls)
+    'a.txt'
+    >>> get_next_file('c.txt', 1, ls)
+    'a.txt'
+    """
+    d, filename = os.path.split(filename)
+    name, ext = filename.rsplit('.', 1)
+    fltr = lambda s: s.endswith(ext)
+    files = filter(fltr, _listdir(d))
+    files.sort()
+    index = files.index(filename) + i
+    if index >= len(files):
+        index -= len(files)
+    if index < 0:
+        index += len(files)
+    return os.path.join(d, files[index])
+
+
 class Sidebar(object):
     def __init__(self, manager):
         builder = self.builder = gtk.Builder()
@@ -160,6 +185,38 @@ class Menu(gtk.MenuBar):
         openitem.connect('activate', self.on_file_open)
         openitem.show()
 
+        i = self.file_prev = gtk.MenuItem('Load previous')
+        i.set_sensitive(False)
+        filemenu.append(i)
+        i.connect('activate', self.on_file_prev)
+        i.show()
+
+        i = self.file_next = gtk.MenuItem('Load next')
+        i.set_sensitive(False)
+        filemenu.append(i)
+        i.connect('activate', self.on_file_next)
+        i.show()
+
+        i = gtk.SeparatorMenuItem()
+        i.show()
+        filemenu.append(i)
+
+        i = self.file_save = gtk.MenuItem('Save')
+        i.set_sensitive(False)
+        i.show()
+        i.connect('activate', self.on_file_save)
+        filemenu.append(i)
+
+        i = gtk.SeparatorMenuItem()
+        i.show()
+        filemenu.append(i)
+
+        i = self.file_save = gtk.MenuItem('Settings')
+        i.set_sensitive(False)
+        i.show()
+        i.connect('activate', self.on_file_settings)
+        filemenu.append(i)
+
         canvasitem = gtk.MenuItem('Canvas')
         self.append(canvasitem)
         canvasitem.show()
@@ -197,6 +254,18 @@ class Menu(gtk.MenuBar):
         elif resp == gtk.RESPONSE_CANCEL:
             dialog.destroy()
             print 'Closed, no files selected'
+
+    def on_file_next(self, btn):
+        self.manager.load_data_file(get_next_file(self.manager.filename))
+
+    def on_file_prev(self, btn):
+        self.manager.load_data_file(get_next_file(self.manager.filename, -1))
+
+    def on_file_save(self):
+        pass
+
+    def on_file_settings(self):
+        pass
 
     def on_irf_toggle(self, item):
         if item.get_active():
@@ -352,6 +421,8 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.reset_margins()
 
     def load_data_file(self, filename):
+        self.filename = filename
+
         for attr in ['decay', 'irf', 'fit', 'res']:
             line = getattr(self, attr, None)
             if line:
@@ -384,6 +455,9 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.text.set_text(r'$\tau_1 = ?$')
         self.window.set_title(os.path.basename(filename))
         self.canvas.draw()
+
+        self.menu.file_prev.set_sensitive(True)
+        self.menu.file_next.set_sensitive(True)
 
     def reset_margins(self):
         w, h = self.canvas.get_width_height()
@@ -510,7 +584,8 @@ def main():
     manager = new_figure_manager(0)
     manager.window.show()
     manager.window.connect("destroy", gtk.main_quit)
-    manager.load_data_file('test-input.phd')
+    if len(sys.argv) > 1:
+        manager.load_data_file(''.join(sys.argv[1:]))
     gtk.main()
 
 
