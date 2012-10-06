@@ -3,4 +3,4 @@ About
 
 Simple GUI for tr_fit command line program.
 
-.. image:: raw/tip/doc/screenshot.png
+.. image:: /Skirmantas/picoharp300/raw/tip/doc/screenshot.png
