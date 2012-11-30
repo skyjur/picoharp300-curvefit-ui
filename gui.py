@@ -585,7 +585,7 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         f.write('%f %d' % (a, b))
         
         for a, b in iterator:
-            f.write('\n%f %d' % (a, b))
+            f.write('\n%f\t%d' % (a, b))
         
 
 def new_figure_manager(num, *args, **kwargs):
