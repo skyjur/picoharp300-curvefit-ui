@@ -2,6 +2,7 @@
 An example of how to use pylab to manage your figure windows, but
 modify the GUI by accessing the underlying gtk widgets
 """
+import re
 import sys
 import os
 import re
@@ -202,7 +203,7 @@ class Menu(gtk.MenuBar):
         filemenu.append(i)
 
         i = self.file_save = gtk.MenuItem('Save')
-        i.set_sensitive(False)
+        i.set_sensitive(True)
         i.show()
         i.connect('activate', self.on_file_save)
         filemenu.append(i)
@@ -261,8 +262,8 @@ class Menu(gtk.MenuBar):
     def on_file_prev(self, btn):
         self.manager.load_data_file(get_next_file(self.manager.filename, -1))
 
-    def on_file_save(self):
-        pass
+    def on_file_save(self, btn):
+        self.manager.save_fit()
 
     def on_file_settings(self):
         pass
@@ -569,6 +570,23 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
         self.irf.remove()
         self.canvas.draw()
 
+    def save_fit(self):
+        if not self.fit:
+            return
+        if not self.filename.endswith('.phd'):
+            filename = self.filename + '.dat'
+        else:
+            filename = re.sub('.phd$', '.dat', self.filename)
+        f = open(filename, 'w')
+
+        iterator = itertools.izip(self.fit.get_xdata(), self.fit.get_ydata())
+
+        a, b = iterator.next()
+        f.write('%f %d' % (a, b))
+        
+        for a, b in iterator:
+            f.write('\n%f %d' % (a, b))
+        
 
 def new_figure_manager(num, *args, **kwargs):
     """
