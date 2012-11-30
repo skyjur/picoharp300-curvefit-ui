@@ -579,13 +579,23 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
             filename = re.sub('.phd$', '.dat', self.filename)
         f = open(filename, 'w')
 
-        iterator = itertools.izip(self.fit.get_xdata(), self.fit.get_ydata())
+        fit_x = self.fit.get_xdata()
+        fit_y = self.fit.get_ydata()
+        decay_x = self.decay.get_xdata()
+        decay_y = self.decay.get_ydata()
 
-        a, b = iterator.next()
-        f.write('%f %d' % (a, b))
-        
-        for a, b in iterator:
-            f.write('\n%f\t%d' % (a, b))
+        first = fit_x[0]
+        for i, x in enumerate(decay_x):
+            if x >= first:
+                start = i
+                break
+
+        data = itertools.izip(fit_x, decay_y[start:], fit_y)
+
+        f.write('%f\t%d\t%d' % data.next())
+
+        for row in data:
+            f.write('\n%f\t%d\t%d' % row)
         
 
 def new_figure_manager(num, *args, **kwargs):
