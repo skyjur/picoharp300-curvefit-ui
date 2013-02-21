@@ -64,6 +64,35 @@ def get_next_file(filename, i=1, _listdir=os.listdir):
     return os.path.join(d, files[index])
 
 
+class CSVFileParser(object):
+    def __init__(self, filename):
+        self.file = open(filename, 'r')
+
+    def get_curve(self, n):
+        self.file.seek(0)
+        ln = []
+        for line in self.file:
+            line = line.strip()
+            for char in (',', ' ', ';'):
+                try:
+                    ln.append(int(line.split(char)[n]))
+                except ValueError:
+                    ln.append(0)
+                    break
+                except IndexError:
+                    continue
+        return 0.0016, numpy.array(ln)
+
+
+def get_file_parser(filename):
+    d = {
+        '.csv': CSVFileParser,
+        '.phd': PicoharpParser,
+    }
+    filename[-4]
+    return d[filename[-4:]](filename)
+
+
 class Sidebar(object):
     def __init__(self, manager):
         builder = self.builder = gtk.Builder()
@@ -241,10 +270,12 @@ class Menu(gtk.MenuBar):
         dialog.set_default_response(gtk.RESPONSE_OK)
 
         fltr = gtk.FileFilter()
-        fltr.set_name('PicoHarp 300 (*.phd)')
+        fltr.set_name('PicoHarp 300 (*.phd), *.csv')
         fltr.add_pattern('*.phd')
+        fltr.add_pattern('*.csv')
 
         dialog.add_filter(fltr)
+
         resp = dialog.run()
 
         if resp == gtk.RESPONSE_OK:
@@ -431,7 +462,7 @@ class Manager(backend_gtkagg.FigureManagerGTKAgg):
                 setattr(self, attr, None)
                 del line
 
-        data = PicoharpParser(filename)
+        data = get_file_parser(filename)
         res, curve1 = data.get_curve(0)
         res, curve2 = data.get_curve(1)
         size = len(curve1)
