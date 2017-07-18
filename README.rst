@@ -1,6 +1,9 @@
 About
 -----
 
-Simple GUI for tr_fit command line program.
+UI for Importing data from picoharp300 and running curve fitting.
 
-.. image:: /Skirmantas/picoharp300/raw/tip/doc/screenshot.png
+Fitting is built on top of [trfit](http://watcut.uwaterloo.ca/trfit/trfit) and
+tr_fit is required to be available in python path.
+
+.. image:: doc/screenshot.png
